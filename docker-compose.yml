@@ -1,0 +1,48 @@
+services:
+  api:
+    build:
+      context: .
+      target: runtime
+    image: png-audit-api:latest
+    environment:
+      # Container-internal listen port; host publishing is configured below.
+      PORT: "8080"
+      HOST: "0.0.0.0"
+    ports:
+      # Host port is configurable via PNG_AUDIT_PORT (defaults to 8080).
+      - "${PNG_AUDIT_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "node", "src/healthcheck.js"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 3s
+    restart: unless-stopped
+
+  # One-shot verification service: waits for the API to report healthy
+  # (depends_on: service_healthy), then runs build checks, unit tests and
+  # HTTP smoke tests against the live container. Its process exit code is
+  # the verification result; the container stops when finished.
+  verify:
+    build:
+      context: .
+      target: build
+    image: png-audit-verify:latest
+    environment:
+      BASE_URL: "http://api:8080"
+      HEALTH_WAIT_MS: "60000"
+    depends_on:
+      api:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        echo "==> [1/3] build checks (node --check)"
+        npm run build
+        echo "==> [2/3] unit tests"
+        npm test
+        echo "==> [3/3] HTTP smoke tests against http://api:8080"
+        npm run smoke
+        echo "==> verify passed"
+    restart: "no"

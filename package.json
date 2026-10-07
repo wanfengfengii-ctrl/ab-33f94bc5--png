@@ -1,0 +1,17 @@
+{
+  "name": "png-audit-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Strict PNG structural audit service for microscopy imaging pipelines",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/png.test.js",
+    "build": "node --check src/png.js && node --check src/server.js && node --check src/healthcheck.js && node --check test/smoke.mjs && node --check test/fixtures.js",
+    "smoke": "node test/smoke.mjs"
+  },
+  "license": "MIT"
+}
